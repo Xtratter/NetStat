@@ -4,11 +4,23 @@ internal const val CAPTURE_BYTES_LIMIT = 8L * 1024 * 1024
 internal const val CAPTURE_DURATION_SECONDS = 180
 internal const val CAPTURE_CONNECTION_LIMIT = 300
 
-internal data class CaptureConfig(val interfaceName: String, val uid: Int?, val label: String? = null) {
+internal enum class CaptureMode { ROOT, VPN }
+
+internal data class CaptureConfig(
+    val interfaceName: String,
+    val uid: Int?,
+    val label: String? = null,
+    val mode: CaptureMode = CaptureMode.ROOT,
+    val packageName: String? = null,
+) {
     init {
         require(isValidInterface(interfaceName))
         require(uid == null || uid >= 0)
+        require(mode != CaptureMode.VPN || (uid == null) == (packageName == null))
     }
+
+    // In VPN mode Android's allowed-app list still constrains unattributed packets.
+    fun acceptsUid(observed: Int?) = uid == null || observed == uid || (mode == CaptureMode.VPN && observed == null)
 
     companion object {
         private val interfacePattern = Regex("[A-Za-z0-9_][A-Za-z0-9_.-]{0,14}")
@@ -50,7 +62,7 @@ internal data class CaptureSnapshot(
 
 internal enum class CaptureEnd {
     USER_STOPPED, TIME_LIMIT, SIZE_LIMIT, ROOT_FAILED, BAD_STREAM, STORAGE_FAILED,
-    INTERRUPTED, UNAVAILABLE,
+    INTERRUPTED, UNAVAILABLE, VPN_FAILED,
 }
 
 internal data class CaptureReport(
@@ -73,4 +85,9 @@ internal sealed interface CaptureState {
 
     val active: Boolean
         get() = this is Preparing || this is Recording || this is Stopping
+}
+
+internal interface CaptureWorker {
+    fun stop(reason: CaptureEnd = CaptureEnd.USER_STOPPED)
+    fun run(): CaptureReport
 }

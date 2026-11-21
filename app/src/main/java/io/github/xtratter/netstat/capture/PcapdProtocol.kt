@@ -71,7 +71,19 @@ internal class RawPcapWriter(private val output: OutputStream, private val limit
     }
 }
 
-internal fun connectionOf(packet: ByteArray): ConnectionKey? {
+internal fun connectionOf(packet: ByteArray): ConnectionKey? = endpointsOf(packet)?.key
+
+internal data class PacketEndpoints(
+    val protocol: Int,
+    val source: Endpoint,
+    val destination: Endpoint,
+    val startsTcp: Boolean,
+) {
+    val key get() = if (source <= destination) ConnectionKey(protocol, source, destination)
+        else ConnectionKey(protocol, destination, source)
+}
+
+internal fun endpointsOf(packet: ByteArray): PacketEndpoints? {
     val view = ipView(packet) ?: return null
 
     val ports = when {
@@ -93,8 +105,8 @@ internal fun connectionOf(packet: ByteArray): ConnectionKey? {
 
     val source = Endpoint(view.source, ports?.first)
     val destination = Endpoint(view.destination, ports?.second)
-    return if (source <= destination) ConnectionKey(view.protocol, source, destination)
-    else ConnectionKey(view.protocol, destination, source)
+    val startsTcp = view.protocol == 6 && ports != null && packet.unsigned(view.offset + 13) and 0x12 == 2
+    return PacketEndpoints(view.protocol, source, destination, startsTcp)
 }
 
 internal data class CapturedTcpSegment(

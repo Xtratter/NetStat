@@ -27,17 +27,17 @@ internal class PcapdCapture(
     private val context: Context,
     private val config: CaptureConfig,
     private val onSnapshot: (CaptureSnapshot) -> Unit,
-) {
+) : CaptureWorker {
     private val stopReason = AtomicReference<CaptureEnd?>()
     private val archive = CaptureArchive(context.noBackupFilesDir)
     private var finalDrops: Long? = null
     private var helperExitUnconfirmed = false
 
-    fun stop(reason: CaptureEnd = CaptureEnd.USER_STOPPED) {
+    override fun stop(reason: CaptureEnd) {
         stopReason.compareAndSet(null, reason)
     }
 
-    fun run(): CaptureReport {
+    override fun run(): CaptureReport {
         val started = System.currentTimeMillis()
         var draft: CaptureArchive.Draft? = null
         var ledger: CaptureLedger? = null

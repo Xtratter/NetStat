@@ -13,7 +13,7 @@ internal class CaptureLedger(private val config: CaptureConfig, private val writ
 
     fun accept(frame: PcapdFrame): AcceptResult {
         drops = maxOf(drops ?: 0L, frame.drops)
-        if (config.uid != null && frame.uid != config.uid) {
+        if (!config.acceptsUid(frame.uid)) {
             uidExcluded++
             return AcceptResult.SKIPPED
         }

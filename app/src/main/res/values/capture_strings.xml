@@ -58,4 +58,14 @@
     <string name="capture_uid_unknown">Unknown UID</string>
     <string name="capture_uid_conflict">Conflicting UIDs</string>
     <string name="capture_connection_bytes">Received %1$s · sent %2$s</string>
+    <string name="capture_mode_root">Root</string>
+    <string name="capture_mode_vpn">VPN without root</string>
+    <string name="capture_vpn_start">Start VPN capture</string>
+    <string name="capture_vpn_note">Traffic stays on the device and is forwarded through the current network. Android allows one VPN at a time.</string>
+    <string name="capture_vpn_filter">Android routes the selected app into this capture. Packets whose owner cannot be identified are marked as unknown.</string>
+    <string name="capture_vpn_preparing">Starting local VPN…</string>
+    <string name="capture_status_vpn_failed">Could not start or continue VPN capture</string>
+    <string name="capture_vpn_conflict_title">Another VPN is active</string>
+    <string name="capture_vpn_conflict">Disconnect the active VPN in Android settings before starting NetStat VPN capture.</string>
+    <string name="capture_vpn_settings">VPN settings</string>
 </resources>

@@ -57,4 +57,14 @@
     <string name="capture_uid_unknown">UID неизвестен</string>
     <string name="capture_uid_conflict">UID пакетов различаются</string>
     <string name="capture_connection_bytes">Приём %1$s · передача %2$s</string>
+    <string name="capture_mode_root">Root</string>
+    <string name="capture_mode_vpn">VPN без root</string>
+    <string name="capture_vpn_start">Записать через VPN</string>
+    <string name="capture_vpn_note">Трафик обрабатывается на устройстве и передаётся через текущую сеть. Android позволяет использовать один VPN одновременно.</string>
+    <string name="capture_vpn_filter">Android направляет в захват выбранное приложение. Пакеты, владелец которых не определился, помечаются отдельно.</string>
+    <string name="capture_vpn_preparing">Запускаем локальный VPN…</string>
+    <string name="capture_status_vpn_failed">Не удалось запустить или продолжить VPN-захват</string>
+    <string name="capture_vpn_conflict_title">Другой VPN уже включён</string>
+    <string name="capture_vpn_conflict">Отключи текущий VPN в настройках Android перед запуском VPN-захвата NetStat.</string>
+    <string name="capture_vpn_settings">Настройки VPN</string>
 </resources>

@@ -131,9 +131,11 @@ private fun AtomicFile.read(): JSONObject? = try {
 
 private fun CaptureConfig.toJson() = JSONObject()
     .put("interface", interfaceName).put("uid", uid ?: JSONObject.NULL).put("label", label ?: JSONObject.NULL)
+    .put("mode", mode.name).put("package", packageName ?: JSONObject.NULL)
 
 private fun JSONObject.toConfig() = CaptureConfig(
     getString("interface"), optionalInt("uid"), optionalString("label"),
+    CaptureMode.valueOf(optString("mode", CaptureMode.ROOT.name)), optionalString("package"),
 )
 
 private fun Endpoint.toJson() = JSONObject().put("address", address).put("port", port ?: JSONObject.NULL)

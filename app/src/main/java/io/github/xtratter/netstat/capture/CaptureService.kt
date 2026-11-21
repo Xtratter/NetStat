@@ -4,13 +4,12 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.VpnService
 import android.os.Build
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,13 +31,11 @@ internal object CaptureRuntime {
     }
 }
 
-class CaptureService : Service() {
+class CaptureService : VpnService() {
     private val main = Handler(Looper.getMainLooper())
     private val executor = Executors.newSingleThreadExecutor()
-    private var runner: PcapdCapture? = null
+    private var runner: CaptureWorker? = null
     private var notificationToken: String? = null
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -59,6 +56,8 @@ class CaptureService : Service() {
                 intent.getStringExtra(EXTRA_INTERFACE).orEmpty(),
                 intent.getIntExtra(EXTRA_UID, -1).takeUnless { it == -1 },
                 intent.getStringExtra(EXTRA_LABEL),
+                CaptureMode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: CaptureMode.ROOT.name),
+                intent.getStringExtra(EXTRA_PACKAGE),
             )
         }.getOrNull()
         if (config == null) {
@@ -78,12 +77,16 @@ class CaptureService : Service() {
         }
 
         CaptureRuntime.state = CaptureState.Preparing(config)
-        val task = PcapdCapture(applicationContext, config) { snapshot ->
+        val progress: (CaptureSnapshot) -> Unit = { snapshot ->
             main.post {
                 if (notificationToken == token && CaptureRuntime.state !is CaptureState.Stopping) {
                     CaptureRuntime.state = CaptureState.Recording(config, snapshot)
                 }
             }
+        }
+        val task = when (config.mode) {
+            CaptureMode.ROOT -> PcapdCapture(applicationContext, config, progress)
+            CaptureMode.VPN -> VpnCapture(this, config, progress)
         }
         runner = task
         executor.execute {
@@ -134,13 +137,22 @@ class CaptureService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_capture)
             .setContentTitle(getString(R.string.capture_notification_title))
-            .setContentText(getString(R.string.capture_notification_interface, config.interfaceName))
+            .setContentText(if (config.mode == CaptureMode.VPN) getString(R.string.capture_mode_vpn)
+                else getString(R.string.capture_notification_interface, config.interfaceName))
             .setContentIntent(open)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .addAction(R.drawable.ic_capture, getString(R.string.capture_stop), stop)
             .build()
+    }
+
+    override fun onRevoke() {
+        main.post {
+            val current = runner
+            if (current == null) stopSelf()
+            else if (current is VpnCapture) current.stop(CaptureEnd.INTERRUPTED)
+        }
     }
 
     override fun onDestroy() {
@@ -155,6 +167,8 @@ class CaptureService : Service() {
         private const val ACTION_STOP = "io.github.xtratter.netstat.STOP_CAPTURE"
         private const val EXTRA_INTERFACE = "interface"
         private const val EXTRA_UID = "uid"
+        private const val EXTRA_MODE = "mode"
+        private const val EXTRA_PACKAGE = "package"
         private const val EXTRA_LABEL = "label"
         private const val EXTRA_NOTIFICATION_TOKEN = "notificationToken"
         private const val CHANNEL_ID = "capture"
@@ -167,6 +181,8 @@ class CaptureService : Service() {
                 .putExtra(EXTRA_INTERFACE, config.interfaceName)
                 .putExtra(EXTRA_UID, config.uid ?: -1)
                 .putExtra(EXTRA_LABEL, config.label)
+                .putExtra(EXTRA_MODE, config.mode.name)
+                .putExtra(EXTRA_PACKAGE, config.packageName)
             try {
                 ContextCompat.startForegroundService(context, intent)
             } catch (error: RuntimeException) {

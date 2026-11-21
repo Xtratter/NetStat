@@ -1,8 +1,10 @@
 package io.github.xtratter.netstat.capture
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.VpnService
 import android.os.Build
 import android.provider.Settings
 import android.text.format.DateFormat
@@ -16,6 +18,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -28,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -71,7 +75,12 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     BackHandler(onBack = onHistory)
     val context = activity.applicationContext
     val state = CaptureRuntime.state
-    val supported = remember(context) { PcapdCapture.isSupported(context) }
+    val rootSupported = remember(context) { PcapdCapture.isSupported(context) }
+    val vpnSupported = remember { VpnNative.supported }
+    val supported = rootSupported || vpnSupported
+    var useVpn by rememberSaveable { mutableStateOf(!rootSupported && vpnSupported) }
+    var conflict by rememberSaveable { mutableStateOf(false) }
+    var consentPending by rememberSaveable { mutableStateOf(false) }
     val managers = remember(context) { NotificationManagerCompat.from(context) }
     var notifications by remember { mutableStateOf(managers.areNotificationsEnabled()) }
     var selectedInterface by rememberSaveable { mutableStateOf<String?>(null) }
@@ -80,6 +89,15 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     var showInterfaces by rememberSaveable { mutableStateOf(false) }
     var uid by rememberSaveable { mutableStateOf<Int?>(null) }
     var appLabel by rememberSaveable { mutableStateOf<String?>(null) }
+    var appPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    val vpnConfig = if (uid == null || appPackage != null) {
+        CaptureConfig("vpn", uid, appLabel, CaptureMode.VPN, appPackage)
+    } else null
+    val vpnPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val shouldStart = consentPending && result.resultCode == Activity.RESULT_OK
+        consentPending = false
+        if (shouldStart && vpnConfig != null) CaptureService.start(activity, vpnConfig)
+    }
     var showApps by rememberSaveable { mutableStateOf(false) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notifications = managers.areNotificationsEnabled()
@@ -104,8 +122,8 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     var inspectorId by rememberSaveable { mutableStateOf<String?>(null) }
     var connectionIndex by rememberSaveable { mutableStateOf(-1) }
     var choices by remember { mutableStateOf<InterfaceChoices?>(null) }
-    LaunchedEffect(activity, supported, state.active, inspectorId, showHttps) {
-        if (supported && !state.active && inspectorId == null && !showHttps) {
+    LaunchedEffect(activity, rootSupported, useVpn, state.active, inspectorId, showHttps) {
+        if (rootSupported && !useVpn && !state.active && inspectorId == null && !showHttps) {
             val connectivity = context.getSystemService(ConnectivityManager::class.java)
             activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (isActive) {
@@ -161,20 +179,49 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                     item { Text(stringResource(R.string.capture_unsupported)) }
                 } else if (!state.active) {
                     item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (rootSupported) {
+                                FilterChip(selected = !useVpn, onClick = { useVpn = false },
+                                    label = { Text(stringResource(R.string.capture_mode_root)) })
+                            }
+                            if (vpnSupported) {
+                                FilterChip(selected = useVpn, onClick = { useVpn = true },
+                                    label = { Text(stringResource(R.string.capture_mode_vpn)) })
+                            }
+                        }
                         CaptureForm(
+                            useVpn = useVpn,
                             target = target,
                             missing = selectedInterface?.takeIf { target == null && choices != null },
                             automatic = selectedInterface == null,
                             manualMode = manualMode,
                             manualName = manualName,
-                            canStart = interfaceName != null,
+                            canStart = if (useVpn) vpnConfig != null && !consentPending else interfaceName != null,
                             uid = uid,
                             appLabel = appLabel,
                             onPickInterface = { showInterfaces = true },
                             onManualName = { manualName = it.take(15) },
                             onSelect = { showApps = true },
                             onStart = {
-                                interfaceName?.let { CaptureService.start(activity, CaptureConfig(it, uid, appLabel)) }
+                                if (!useVpn) {
+                                    interfaceName?.let { CaptureService.start(activity, CaptureConfig(it, uid, appLabel)) }
+                                } else if (vpnConfig != null) {
+                                    if (hasActiveVpn(context.getSystemService(ConnectivityManager::class.java))) {
+                                        conflict = true
+                                    } else {
+                                        try {
+                                            val approval = VpnService.prepare(activity)
+                                            if (approval == null) CaptureService.start(activity, vpnConfig)
+                                            else {
+                                                consentPending = true
+                                                vpnPermission.launch(approval)
+                                            }
+                                        } catch (error: RuntimeException) {
+                                            consentPending = false
+                                            CaptureRuntime.finishWithoutRecording(vpnConfig, CaptureEnd.VPN_FAILED, error.message)
+                                        }
+                                    }
+                                }
                             },
                         )
                     }
@@ -213,7 +260,8 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                 }
                 val snapshot = when (state) {
                     is CaptureState.Preparing -> {
-                        item { CaptureStatus(R.string.capture_status_preparing, state.config) }
+                        item { CaptureStatus(if (state.config.mode == CaptureMode.VPN) R.string.capture_vpn_preparing
+                            else R.string.capture_status_preparing, state.config) }
                         null
                     }
                     is CaptureState.Recording -> {
@@ -260,6 +308,22 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
             }
         }
 
+        if (conflict) {
+            AlertDialog(
+                onDismissRequest = { conflict = false },
+                title = { Text(stringResource(R.string.capture_vpn_conflict_title)) },
+                text = { Text(stringResource(R.string.capture_vpn_conflict)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        conflict = false
+                        activity.startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
+                    }) { Text(stringResource(R.string.capture_vpn_settings)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { conflict = false }) { Text(stringResource(android.R.string.cancel)) }
+                },
+            )
+        }
         if (showInterfaces) {
             InterfacePicker(
                 choices = choices,
@@ -278,10 +342,12 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
         }
         if (showApps) {
             CaptureAppPicker(
+                exclude = context.packageName.takeIf { useVpn },
                 dismiss = { showApps = false },
                 select = { app ->
                     uid = app?.uid
                     appLabel = app?.label
+                    appPackage = app?.name
                     showApps = false
                 },
             )
@@ -291,6 +357,7 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
 
 @Composable
 private fun CaptureForm(
+    useVpn: Boolean,
     target: CaptureInterface?,
     missing: String?,
     automatic: Boolean,
@@ -306,29 +373,33 @@ private fun CaptureForm(
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.capture_interface), style = MaterialTheme.typography.labelLarge)
-            OutlinedButton(onClick = onPickInterface, modifier = Modifier.fillMaxWidth()) {
-                Text(if (!manualMode && target != null) target.label() else stringResource(R.string.capture_interface_pick))
-            }
-            if (manualMode) {
-                OutlinedTextField(
-                    value = manualName,
-                    onValueChange = onManualName,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.capture_interface_name)) },
-                    isError = manualName.isNotBlank() && !canStart,
-                    singleLine = true,
-                )
-            } else if (missing != null) {
-                Text(stringResource(R.string.capture_interface_missing, missing), color = MaterialTheme.colorScheme.error)
-            } else if (automatic && target != null) {
-                Text(stringResource(R.string.capture_interface_default), style = MaterialTheme.typography.bodySmall)
+            if (useVpn) {
+                Text(stringResource(R.string.capture_vpn_note), style = MaterialTheme.typography.bodySmall)
+            } else {
+                Text(stringResource(R.string.capture_interface), style = MaterialTheme.typography.labelLarge)
+                OutlinedButton(onClick = onPickInterface, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (!manualMode && target != null) target.label() else stringResource(R.string.capture_interface_pick))
+                }
+                if (manualMode) {
+                    OutlinedTextField(
+                        value = manualName,
+                        onValueChange = onManualName,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.capture_interface_name)) },
+                        isError = manualName.isNotBlank() && !canStart,
+                        singleLine = true,
+                    )
+                } else if (missing != null) {
+                    Text(stringResource(R.string.capture_interface_missing, missing), color = MaterialTheme.colorScheme.error)
+                } else if (automatic && target != null) {
+                    Text(stringResource(R.string.capture_interface_default), style = MaterialTheme.typography.bodySmall)
+                }
             }
             Text(stringResource(R.string.capture_scope), style = MaterialTheme.typography.labelLarge)
             OutlinedButton(onClick = onSelect) { Text(scopeLabel(uid, appLabel)) }
-            if (uid != null) Text(stringResource(R.string.capture_filter_note), style = MaterialTheme.typography.bodySmall)
+            if (uid != null) Text(stringResource(if (useVpn) R.string.capture_vpn_filter else R.string.capture_filter_note), style = MaterialTheme.typography.bodySmall)
             Button(onClick = onStart, enabled = canStart) {
-                Text(stringResource(R.string.capture_start))
+                Text(stringResource(if (useVpn) R.string.capture_vpn_start else R.string.capture_start))
             }
             Text(stringResource(R.string.capture_retention), style = MaterialTheme.typography.bodySmall)
         }
@@ -338,7 +409,7 @@ private fun CaptureForm(
 private data class InstalledApp(val uid: Int, val name: String, val label: String)
 
 @Composable
-private fun CaptureAppPicker(dismiss: () -> Unit, select: (InstalledApp?) -> Unit) {
+private fun CaptureAppPicker(exclude: String?, dismiss: () -> Unit, select: (InstalledApp?) -> Unit) {
     val packages = LocalContext.current.packageManager
     var apps by remember(packages) { mutableStateOf<List<InstalledApp>?>(null) }
     LaunchedEffect(packages) {
@@ -351,8 +422,8 @@ private fun CaptureAppPicker(dismiss: () -> Unit, select: (InstalledApp?) -> Uni
         }
     }
     var search by rememberSaveable { mutableStateOf("") }
-    val listed = remember(apps, search) {
-        apps.orEmpty().filter { it.label.contains(search, ignoreCase = true) || it.name.contains(search, ignoreCase = true) }
+    val listed = remember(apps, search, exclude) {
+        apps.orEmpty().filter { it.name != exclude && (it.label.contains(search, ignoreCase = true) || it.name.contains(search, ignoreCase = true)) }
     }
 
     AlertDialog(
@@ -396,7 +467,8 @@ private fun CaptureStatus(title: Int, config: CaptureConfig, detail: String? = n
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(title), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.capture_session_scope, config.interfaceName, scopeLabel(config.uid, config.label)))
+            val source = if (config.mode == CaptureMode.VPN) stringResource(R.string.capture_mode_vpn) else config.interfaceName
+            Text(stringResource(R.string.capture_session_scope, source, scopeLabel(config.uid, config.label)))
             if (!detail.isNullOrBlank()) Text(detail, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -467,4 +539,5 @@ private fun CaptureEnd.title(): Int = when (this) {
     CaptureEnd.STORAGE_FAILED -> R.string.capture_status_storage_failed
     CaptureEnd.INTERRUPTED -> R.string.capture_status_interrupted
     CaptureEnd.UNAVAILABLE -> R.string.capture_status_unavailable
+    CaptureEnd.VPN_FAILED -> R.string.capture_status_vpn_failed
 }
