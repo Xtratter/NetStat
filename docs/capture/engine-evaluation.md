@@ -31,13 +31,13 @@ python tools/verify-pcapd-fixture.py .superpowers/pcapd-bin/dist/arm64-v8a/libpc
 | --- | --- | --- | --- |
 | Offline fixture | n/a | n/a | TCP 7, UDP 2. File playback exercises decoding only. |
 | Device loopback, normal Termux | TCP 3/3 fully attributed; UDP 4/4 partially attributed | Kernel drops 0, interface drops 0; UDP test messages 8/8 | 29 PCAP packets. For every UDP exchange one packet had the expected UID, the other an unknown UID. Both endpoints shared the Termux UID. |
-| Current network | Pending | Pending | The Termux wrapper in the Codex execution session returned 127 when executing /system/bin/su. No privileged capture started. |
-| Other transports | Pending | Pending | Repeat separately on Wi-Fi, mobile and the VPN tunnel when each is available. |
+| Current route via VPN (tun0), normal Termux | 7/7 flows had at least one correct UID. TCP 12/21 packets known, UDP 4/8 known. Other packets had unknown UID. | Kernel drops 0, interface drops 0; UDP test messages 8/8 | All 3 TCP and 4 UDP DNS exchanges completed. The PCAP contained 29 packets. pcapd reported that its IPv4 interface-address lookup failed. Direction was not validated. |
+| Other transports | Pending | Pending | Direct Wi-Fi and direct mobile runs remain outstanding. |
 
-Код 127 описывает среду запуска стенда. Для измерения нужен успешный запуск su из той же сессии, в которой запускается стенд. Прочерк в этих измерениях нельзя интерпретировать как ноль потерянных пакетов.
+Из обычной вкладки Termux root-проверка прошла на lo и tun0. На tun0 во всех семи соединениях хотя бы у одного пакета подтверждён UID Termux. В каждой группе также встречались пакеты с неизвестным UID. В этом опыте участвовало одно приложение. Прямой Wi-Fi, мобильная сеть и точность при одновременной работе нескольких приложений ещё требуют проверки.
 
 ## Engine decision / Выбор движка
 
-Prefer pcapd for the first device trial. It includes libpcap, socket-owner lookup through inet_diag with a fallback, a flow cache, packet direction and a local IPC format. A standalone libpcap capture would require NetStat to implement and validate ownership separately. The published binary is from 2022. Adopt it for the APK only after measuring known-UID TCP and short UDP flows on a real device. The raw recording and measured flows belong to a single interface per run.
+Prefer pcapd for the first device trial. It includes libpcap, socket-owner lookup through inet_diag with a fallback, a flow cache, packet direction and a local IPC format. A standalone libpcap capture would require NetStat to implement and validate ownership separately. The published binary is from 2022. Use this pinned arm64 binary for an initial root recording feature based on the loopback and VPN trials. Keep packet attribution distinct from flow-level evidence, and represent missing or conflicting owners explicitly. The raw recording and measured flows belong to a single interface per run.
 
 Для испытаний выбран pcapd. В проекте без него пришлось бы отдельно реализовать поиск владельца соединения и проверить его на тех же коротких потоках. Доступность UID, видимость трафика внутри VPN и фактические потери ещё нужно измерить по каждому интерфейсу. Счётчик ядра и пропущенные тестовые пакеты — разные показатели. В файле PCAP сведений о UID нет; измерения сохраняются отдельно.
