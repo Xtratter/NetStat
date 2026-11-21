@@ -151,9 +151,8 @@ def start_vpn():
 def check_vpn():
     netstat(capture=True, restart=True)
     tap("All UIDs")
-    tap("Search apps")
-    adb("shell", "input", "text", "NetStat%sProbe")
-    tap("NetStat Probe")
+    # The probe's numeric prefix places it at the top of the fresh emulator's app list.
+    tap("00 NetStat Probe")
 
     tap("Start VPN capture")
     tap("Cancel")

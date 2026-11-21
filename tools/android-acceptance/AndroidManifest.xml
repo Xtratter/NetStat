@@ -2,7 +2,7 @@
     package="io.github.xtratter.netstat.probe">
     <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="35" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:label="NetStat Probe" android:usesCleartextTraffic="true">
+    <application android:label="00 NetStat Probe" android:usesCleartextTraffic="true">
         <activity android:name=".ProbeActivity" android:exported="true" />
         <service android:name=".ProbeVpn" android:exported="true"
             android:permission="android.permission.BIND_VPN_SERVICE">
