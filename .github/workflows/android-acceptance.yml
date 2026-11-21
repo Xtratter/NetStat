@@ -33,7 +33,13 @@ jobs:
           export NETSTAT_VPN_CC="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android29-clang"
           bash tools/build-vpn-native.sh x86_64
           ./gradlew --no-daemon --console=plain assembleDebug
-          bash tools/android-acceptance/build-probe.sh "$RUNNER_TEMP/netstat-acceptance"
+          test_dir="$RUNNER_TEMP/netstat-acceptance"
+          mkdir -p "$test_dir"
+          keytool -genkeypair -keystore "$test_dir/test.jks" -storepass android -keypass android -alias acceptance \
+            -dname "CN=NetStat Emulator Acceptance" -keyalg RSA -keysize 2048 -validity 365
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$test_dir/test.jks" \
+            --ks-pass pass:android --out "$test_dir/candidate.apk" app/build/outputs/apk/debug/app-debug.apk
+          bash tools/android-acceptance/build-probe.sh "$test_dir"
 
       - name: Prepare the published 0.6.0 APK for an update test
         run: |
@@ -42,7 +48,7 @@ jobs:
             https://github.com/Xtratter/NetStat/releases/download/v0.6.0/NetStat-0.6.0-debug.apk \
             --output release.apk
           echo "fc0c1f4fecf9e82d2ca28d75d5665a5cf88865f1846aaa0eff547caf1aa0becc  release.apk" | sha256sum -c -
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$HOME/.android/debug.keystore" \
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks test.jks \
             --ks-pass pass:android --out previous.apk release.apk
 
       - name: Enable KVM
@@ -63,5 +69,5 @@ jobs:
           script: >-
             python3 tools/android-acceptance/check.py
             "$RUNNER_TEMP/netstat-acceptance/previous.apk"
-            app/build/outputs/apk/debug/app-debug.apk
+            "$RUNNER_TEMP/netstat-acceptance/candidate.apk"
             "$RUNNER_TEMP/netstat-acceptance/probe-signed.apk"
