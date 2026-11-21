@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.xtratter.netstat"
         minSdk = 29
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.4.1"
+        versionCode = 6
+        versionName = "0.5.0"
     }
 
     buildFeatures { compose = true }
@@ -43,4 +43,5 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.3.1")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

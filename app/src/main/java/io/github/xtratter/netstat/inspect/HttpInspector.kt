@@ -47,12 +47,25 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun HttpInspector(file: PacketFile, connection: ConnectionKey?, onBack: () -> Unit) {
     var dialogues by remember(file, connection) { mutableStateOf<HttpDialogues?>(null) }
-    var query by rememberSaveable { mutableStateOf("") }
-    var selected by rememberSaveable { mutableIntStateOf(-1) }
     LaunchedEffect(file, connection) {
         dialogues = withContext(Dispatchers.Default) { file.httpDialogues(connection) }
     }
-    val data = dialogues
+    HttpDialogueView(dialogues, onBack)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun HttpDialogueView(
+    data: HttpDialogues?,
+    onBack: () -> Unit,
+    title: Int = R.string.http_dialogues,
+    searchScope: Int = R.string.http_search_scope,
+    empty: Int = R.string.http_empty,
+    summary: (@Composable () -> Unit)? = null,
+    rememberQuery: Boolean = true,
+) {
+    var query by if (rememberQuery) rememberSaveable { mutableStateOf("") } else remember { mutableStateOf("") }
+    var selected by rememberSaveable { mutableIntStateOf(-1) }
     var matches by remember(data) { mutableStateOf<List<Int>>(emptyList()) }
     var searching by remember(data) { mutableStateOf(false) }
     LaunchedEffect(data, query) {
@@ -74,7 +87,7 @@ internal fun HttpInspector(file: PacketFile, connection: ConnectionKey?, onBack:
     NetStatTheme {
         Scaffold(topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.http_dialogues)) },
+                title = { Text(stringResource(title)) },
                 navigationIcon = {
                     TextButton(onClick = back) { Text(stringResource(R.string.packet_back)) }
                 },
@@ -85,15 +98,16 @@ internal fun HttpInspector(file: PacketFile, connection: ConnectionKey?, onBack:
                     data == null -> LinearProgressIndicator(Modifier.fillMaxWidth())
                     exchange != null -> ExchangeDetail(exchange)
                     else -> {
+                        summary?.invoke()
                         OutlinedTextField(
                             value = query, onValueChange = { query = it.take(512) },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), singleLine = true,
                             label = { Text(stringResource(R.string.http_search)) },
                         )
-                        Text(stringResource(R.string.http_search_scope), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(searchScope), style = MaterialTheme.typography.bodySmall)
                         if (data.limitReached) Text(stringResource(R.string.http_session_limit))
                         if (searching) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        else if (data.exchanges.isEmpty()) Text(stringResource(R.string.http_empty))
+                        else if (data.exchanges.isEmpty()) Text(stringResource(empty))
                         else Text(stringResource(R.string.http_matches, matches.size, data.exchanges.size))
                         LazyColumn {
                             items(matches, key = { it }) { index ->

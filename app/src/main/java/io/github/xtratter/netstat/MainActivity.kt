@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -16,8 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import io.github.xtratter.netstat.capture.CaptureScreen
 import io.github.xtratter.netstat.capture.CaptureService
+import io.github.xtratter.netstat.inspect.HTTPS_SESSION_MIME
+import io.github.xtratter.netstat.inspect.HttpsImportScreen
 import io.github.xtratter.netstat.usage.AndroidUsageHistory
 import io.github.xtratter.netstat.usage.UsageNetwork
 import io.github.xtratter.netstat.usage.UsagePeriod
@@ -35,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private val history by lazy { AndroidUsageHistory(applicationContext) }
     private val appOps by lazy { getSystemService(AppOpsManager::class.java) }
 
+    private var sharedHttps by mutableStateOf<Uri?>(null)
     private var captureOpen by mutableStateOf(false)
     private var period by mutableStateOf<UsagePeriod>(UsagePeriod.Today)
     private var network by mutableStateOf(UsageNetwork.WIFI)
@@ -66,9 +71,17 @@ class MainActivity : ComponentActivity() {
         captureOpen = savedInstanceState?.getBoolean("captureOpen")
             ?: intent.getBooleanExtra(CaptureService.EXTRA_OPEN_CAPTURE, false)
 
+        sharedHttps = intent.httpsSessionUri()
         enableEdgeToEdge()
         setContent {
-            if (captureOpen) {
+            val document = sharedHttps
+            if (document != null) {
+                HttpsImportScreen(onBack = {
+                    intent.removeExtra(Intent.EXTRA_STREAM)
+                    sharedHttps = null
+                    captureOpen = true
+                }, initialDocument = document)
+            } else if (captureOpen) {
                 CaptureScreen(this, onHistory = { captureOpen = false })
             } else {
                 UsageScreen(
@@ -95,6 +108,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        sharedHttps = intent.httpsSessionUri()
         if (intent.getBooleanExtra(CaptureService.EXTRA_OPEN_CAPTURE, false)) captureOpen = true
     }
 
@@ -192,4 +206,10 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, R.string.access_settings_missing, Toast.LENGTH_SHORT).show()
         }
     }
+}
+
+private fun Intent.httpsSessionUri(): Uri? {
+    if (action != Intent.ACTION_SEND || type != HTTPS_SESSION_MIME) return null
+    val uri = runCatching { IntentCompat.getParcelableExtra(this, Intent.EXTRA_STREAM, Uri::class.java) }.getOrNull()
+    return uri?.takeIf { it.scheme == "content" }
 }

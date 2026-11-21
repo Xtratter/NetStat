@@ -305,3 +305,27 @@ private fun lineEnd(bytes: ByteArray, start: Int, end: Int): Int {
     }
     return -1
 }
+
+internal fun proxyHttpMessage(
+    version: String,
+    headers: List<HttpHeader>,
+    rawBody: ByteArray,
+    bodySize: Int,
+    previewMissing: Boolean,
+    budget: HttpBudget,
+    method: String?,
+    url: String?,
+    status: Int?,
+): HttpMessage {
+    val contentType = headers.firstValue("Content-Type")
+    val encoded = Body(rawBody, maxOf(rawBody.size, bodySize))
+    val decoded = decodeBody(encoded, headers.codings("Content-Encoding"), budget.bodyLimit())
+    budget.takeBody(decoded.bytes.size)
+    val line = if (status == null) "$method $url $version" else "$version $status"
+    return HttpMessage(
+        line, headers, decoded.bytes, bodySize,
+        decoded.bytes.takeUnless { decoded.unavailable }?.let { bodyText(it, contentType) },
+        contentType, partial = decoded.corrupt, previewLimited = previewMissing || decoded.limited,
+        encodingUnavailable = decoded.unavailable, method = method, target = url, status = status,
+    )
+}

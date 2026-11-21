@@ -9,6 +9,7 @@ import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
+import io.github.xtratter.netstat.inspect.HttpsImportScreen
 import io.github.xtratter.netstat.inspect.PacketInspector
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -99,11 +100,12 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
         }
     }
 
+    var showHttps by rememberSaveable { mutableStateOf(false) }
     var inspectorId by rememberSaveable { mutableStateOf<String?>(null) }
     var connectionIndex by rememberSaveable { mutableStateOf(-1) }
     var choices by remember { mutableStateOf<InterfaceChoices?>(null) }
-    LaunchedEffect(activity, supported, state.active, inspectorId) {
-        if (supported && !state.active && inspectorId == null) {
+    LaunchedEffect(activity, supported, state.active, inspectorId, showHttps) {
+        if (supported && !state.active && inspectorId == null && !showHttps) {
             val connectivity = context.getSystemService(ConnectivityManager::class.java)
             activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (isActive) {
@@ -115,6 +117,10 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     }
     val target = choices?.target(selectedInterface)
     val interfaceName = if (manualMode) manualName.trim().takeIf(CaptureConfig::isValidInterface) else target?.name
+    if (showHttps) {
+        HttpsImportScreen(onBack = { showHttps = false })
+        return
+    }
     val finished = (state as? CaptureState.Finished)?.report
     val selectedId = inspectorId
     if (selectedId != null && finished?.sessionId == selectedId) {
@@ -136,7 +142,10 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
             topBar = {
                 TopAppBar(
                     title = { Text(stringResource(R.string.capture_title), Modifier.semantics { heading() }) },
-                    actions = { TextButton(onClick = onHistory) { Text(stringResource(R.string.capture_history)) } },
+                    actions = {
+                        TextButton(onClick = { showHttps = true }) { Text(stringResource(R.string.https_action)) }
+                        TextButton(onClick = onHistory) { Text(stringResource(R.string.capture_history)) }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 )
             },

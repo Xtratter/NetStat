@@ -38,6 +38,10 @@ Stop the recording and open **Packets** for the entire session, or tap a connect
 
 Open **Packets → HTTP conversations** for a completed session or a TCP connection. NetStat reconstructs cleartext HTTP/1.x requests and responses from captured TCP segments and marks incomplete exchanges. Search includes URLs, headers and decoded text in both directions. Chunked bodies and gzip are decoded, with up to 256 KiB of preview per body and 4 MiB of retained HTTP headers and bodies per analysis. Binary previews show hex.
 
+## HTTPS diagnostics
+
+Open a local explicit-proxy session from **Capture → HTTPS**. [Setup and report import](docs/capture/https.md).
+
 ## Build and check
 
 Use JDK 17, Android SDK 35 and Build Tools 35.0.0. The wrapper pins Gradle 8.10.2,

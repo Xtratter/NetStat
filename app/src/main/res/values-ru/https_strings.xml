@@ -1,0 +1,13 @@
+<resources>
+    <string name="https_action">HTTPS</string>
+    <string name="https_title">Диагностика HTTPS</string>
+    <string name="https_instructions">Запусти скрипт прокси NetStat для одного хоста. Настрой совместимый клиент на этот прокси и добавь доверие к его сертификату. Останови сеанс и открой в NetStat файл session.netstat-https.json.</string>
+    <string name="https_import">Открыть сеанс диагностики</string>
+    <string name="https_import_error">Не удалось прочитать сеанс HTTPS. Проверь формат и размер файла.</string>
+    <string name="https_search_scope">Поиск включает URL, заголовки и декодированный текст из записи прокси.</string>
+    <string name="https_empty">Прокси не записал HTTPS-сообщений. Проверь настройки прокси и сертификата в клиенте.</string>
+    <string name="https_session_scope">Метка клиента · %1$s
+Область · %2$s:%3$d</string>
+    <string name="https_tls_failures">Сбои TLS · клиент %1$d / сервер %2$d</string>
+    <string name="https_tls_without_http">Клиентских TLS-соединений без HTTP-запроса · %1$d</string>
+</resources>
