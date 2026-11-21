@@ -7,6 +7,8 @@ import android.provider.Settings
 import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.clickable
+import io.github.xtratter.netstat.inspect.PacketInspector
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -105,6 +107,22 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
         }
     }
 
+    var inspectorId by rememberSaveable { mutableStateOf<String?>(null) }
+    var connectionIndex by rememberSaveable { mutableStateOf(-1) }
+    val finished = (state as? CaptureState.Finished)?.report
+    val selectedId = inspectorId
+    if (selectedId != null && finished?.sessionId == selectedId) {
+        PacketInspector(selectedId, finished.snapshot.connections.getOrNull(connectionIndex)?.key,
+            onBack = { inspectorId = null },
+            onDeleted = {
+                inspectorId = null
+                if ((CaptureRuntime.state as? CaptureState.Finished)?.report?.sessionId == selectedId) {
+                    CaptureRuntime.state = CaptureState.Idle
+                }
+            })
+        return
+    }
+
     NetStatTheme {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -185,6 +203,13 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                     }
                     is CaptureState.Finished -> {
                         item { CaptureStatus(state.report.reason.title(), state.report.config, state.report.detail) }
+                        state.report.sessionId?.let { id ->
+                            item {
+                                OutlinedButton(onClick = { connectionIndex = -1; inspectorId = id }) {
+                                    Text(stringResource(R.string.packet_title))
+                                }
+                            }
+                        }
                         state.report.snapshot
                     }
                     CaptureState.Idle, CaptureState.Loading -> null
@@ -201,7 +226,12 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                                 style = MaterialTheme.typography.titleLarge,
                             )
                         }
-                        items(snapshot.connections) { connection -> ConnectionCard(connection) }
+                        items(snapshot.connections.size) { index ->
+                            val open: (() -> Unit)? = finished?.sessionId?.let { id ->
+                                { connectionIndex = index; inspectorId = id }
+                            }
+                            ConnectionCard(snapshot.connections[index], open)
+                        }
                     }
                 }
             }
@@ -338,7 +368,7 @@ private fun CaptureCounters(snapshot: CaptureSnapshot) {
 }
 
 @Composable
-private fun ConnectionCard(connection: ConnectionSummary) {
+private fun ConnectionCard(connection: ConnectionSummary, open: (() -> Unit)?) {
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
     val clock = remember(context, locale) { DateFormat.getTimeFormat(context) }
@@ -356,7 +386,7 @@ private fun ConnectionCard(connection: ConnectionSummary) {
         UidConfidence.UNKNOWN -> stringResource(R.string.capture_uid_unknown)
         UidConfidence.CONFLICT -> stringResource(R.string.capture_uid_conflict)
     }
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    OutlinedCard(if (open == null) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().clickable(onClick = open)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("$transport · ${clock.format(Date(connection.firstSeenMillis))}", style = MaterialTheme.typography.labelLarge)
             Text(

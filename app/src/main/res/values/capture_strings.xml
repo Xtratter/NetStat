@@ -34,7 +34,7 @@
     <string name="capture_session_scope">%1$s · %2$s</string>
     <string name="capture_packet_count">Packets saved %1$d</string>
     <string name="capture_drop_count">Packets dropped by capture %1$d</string>
-    <string name="capture_malformed_count">Malformed packets skipped %1$d</string>
+    <string name="capture_malformed_count">Packets with incomplete decoding: %1$d</string>
     <string name="capture_unlisted_count">Packets beyond the connection list limit %1$d</string>
     <string name="capture_connections">Connections</string>
     <string name="capture_no_connections">No connections recorded</string>

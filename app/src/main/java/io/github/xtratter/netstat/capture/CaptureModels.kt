@@ -60,6 +60,7 @@ internal data class CaptureReport(
     val snapshot: CaptureSnapshot,
     val reason: CaptureEnd,
     val detail: String? = null,
+    val sessionId: String? = null,
 )
 
 internal sealed interface CaptureState {

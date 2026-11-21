@@ -80,6 +80,7 @@ internal class PcapdCapture(
             if (sample == null) snapshot else snapshot.copy(drops = maxOf(snapshot.drops ?: 0L, sample)),
             if (helperExitUnconfirmed) CaptureEnd.INTERRUPTED else end.reason,
             end.message?.take(400),
+            draft?.id,
         )
         return try {
             draft?.let { archive.finish(it, report) }

@@ -75,6 +75,17 @@ class CaptureProtocolTest {
     }
 
     @Test
+    fun truncatedIpHeaderRemainsInspectableWithoutClaimingAConnection() {
+        val output = ByteArrayOutputStream()
+        val ledger = CaptureLedger(CaptureConfig("tun0", null), RawPcapWriter(output, 200))
+        assertEquals(AcceptResult.STORED, ledger.accept(frame(null, byteArrayOf(0x45))))
+        assertEquals(1, ledger.snapshot().packets)
+        assertEquals(1, ledger.snapshot().malformed)
+        assertTrue(ledger.snapshot().connections.isEmpty())
+        assertEquals(0x45, output.toByteArray().last().toInt())
+    }
+
+    @Test
     fun sizeLimitDoesNotWriteAPartialRecord() {
         val output = ByteArrayOutputStream()
         val exactLimit = 24L + 16 + payload.size

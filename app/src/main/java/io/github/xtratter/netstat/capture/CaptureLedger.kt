@@ -18,14 +18,13 @@ internal class CaptureLedger(private val config: CaptureConfig, private val writ
             return AcceptResult.SKIPPED
         }
         val key = connectionOf(frame.bytes)
-        if (key == null) {
-            malformed++
-            return AcceptResult.SKIPPED
-        }
         if (!writer.append(frame)) return AcceptResult.LIMIT
-
         packets++
         payloadBytes += frame.bytes.size
+        if (key == null) {
+            malformed++
+            return AcceptResult.STORED
+        }
         val counters = connections[key] ?: if (connections.size < CAPTURE_CONNECTION_LIMIT) {
             ConnectionCounters().also { connections[key] = it }
         } else {

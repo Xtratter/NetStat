@@ -34,7 +34,7 @@
     <string name="capture_session_scope">%1$s · %2$s</string>
     <string name="capture_packet_count">Сохранено пакетов %1$d</string>
     <string name="capture_drop_count">Потери при захвате %1$d</string>
-    <string name="capture_malformed_count">Повреждённых пакетов пропущено %1$d</string>
+    <string name="capture_malformed_count">Пакетов с неполным разбором: %1$d</string>
     <string name="capture_unlisted_count">Пакетов сверх лимита списка соединений %1$d</string>
     <string name="capture_connections">Соединения</string>
     <string name="capture_no_connections">Соединения не записаны</string>

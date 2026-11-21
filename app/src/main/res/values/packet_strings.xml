@@ -1,0 +1,9 @@
+<resources>
+    <string name="packet_title">Packets</string>
+    <string name="packet_back">Back</string>
+    <string name="packet_export">Export full PCAPNG</string>
+    <string name="packet_delete">Delete session</string>
+    <string name="packet_confirm">Delete the recording and connection journal?</string>
+    <string name="packet_exported">PCAPNG saved</string>
+    <string name="packet_total">Packets: %1$d</string>
+</resources>

@@ -1,0 +1,9 @@
+<resources>
+    <string name="packet_title">Пакеты</string>
+    <string name="packet_back">Назад</string>
+    <string name="packet_export">Экспорт всей записи в PCAPNG</string>
+    <string name="packet_delete">Удалить запись</string>
+    <string name="packet_confirm">Удалить пакеты и журнал соединений?</string>
+    <string name="packet_exported">PCAPNG сохранён</string>
+    <string name="packet_total">Пакетов: %1$d</string>
+</resources>

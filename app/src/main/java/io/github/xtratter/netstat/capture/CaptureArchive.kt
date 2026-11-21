@@ -16,22 +16,35 @@ internal class CaptureArchive(noBackupFiles: File) {
 
     data class Draft(val id: String, val packetFile: File)
 
-    fun begin(config: CaptureConfig, started: Long): Draft {
+    private companion object {
+        val archiveLock = Any()
+        var recordingId: String? = null
+    }
+
+    fun begin(config: CaptureConfig, started: Long): Draft = synchronized(archiveLock) {
         if (!root.mkdirs() && !root.isDirectory) throw IOException("Cannot open the capture directory")
         val id = UUID.randomUUID().toString()
         current.write(JSONObject().put("id", id).put("config", config.toJson()).put("started", started))
-        return Draft(id, File(root, "capture-$id.pcap"))
+        recordingId = id
+        Draft(id, File(root, "capture-$id.pcap"))
     }
 
-    fun finish(draft: Draft, report: CaptureReport) {
-        latest.write(report.toJson().put("id", draft.id))
-        current.delete()
-        discardOtherCaptures(draft.packetFile.name)
+    fun finish(draft: Draft, report: CaptureReport) = synchronized(archiveLock) {
+        try {
+            latest.write(report.toJson().put("id", draft.id))
+            current.delete()
+            discardOtherCaptures(draft.packetFile.name)
+        } finally {
+            recordingId = null
+        }
     }
 
-    fun restore(): CaptureReport? {
+    fun restore(): CaptureReport? = synchronized(archiveLock) { restoreLocked() }
+
+    private fun restoreLocked(): CaptureReport? {
         val stored = latest.read()
         val lastReport = stored?.let { runCatching { it.toReport() }.getOrNull() }
+        if (recordingId != null) return lastReport
         val pending = current.read()
         if (pending == null || pending.optString("id") == stored?.optString("id")) {
             current.delete()
@@ -49,7 +62,7 @@ internal class CaptureArchive(noBackupFiles: File) {
             try {
                 val prefix = recoverPcapPrefix(packetFile)
                 val snapshot = CaptureSnapshot(packets = prefix?.packets ?: 0, payloadBytes = prefix?.payloadBytes ?: 0)
-                val report = interrupted.copy(snapshot = snapshot)
+                val report = interrupted.copy(snapshot = snapshot, sessionId = id)
                 latest.write(report.toJson().put("id", id))
                 current.delete()
                 discardOtherCaptures(packetFile.name.takeIf { prefix != null })
@@ -65,6 +78,26 @@ internal class CaptureArchive(noBackupFiles: File) {
         val keepId = stored?.optString("id")?.takeIf { lastReport != null }
         discardOtherCaptures(keepId?.let { "capture-$it.pcap" })
         return lastReport
+    }
+
+    private fun fileForLatest(id: String): File {
+        if (runCatching { UUID.fromString(id).toString() }.getOrNull() != id ||
+            latest.read()?.optString("id") != id || current.baseFile.exists()
+        ) throw IOException("Recording has changed")
+        return File(root, "capture-$id.pcap")
+    }
+
+    fun readPackets(id: String): ByteArray = synchronized(archiveLock) {
+        val file = fileForLatest(id)
+        if (file.length() !in 24L..CAPTURE_BYTES_LIMIT) throw IOException("Missing or invalid packet file")
+        file.readBytes()
+    }
+
+    fun deleteSession(id: String) = synchronized(archiveLock) {
+        val file = fileForLatest(id)
+        if (file.exists() && !file.delete()) throw IOException("Cannot delete packet file")
+        latest.delete()
+        if (latest.baseFile.exists()) throw IOException("Cannot delete session index")
     }
 
     private fun discardOtherCaptures(keep: String?) {
@@ -136,7 +169,7 @@ private fun JSONObject.toReport(): CaptureReport {
     )
     return CaptureReport(
         getJSONObject("config").toConfig(), getLong("started"), getLong("ended"), snapshot,
-        CaptureEnd.valueOf(getString("reason")), optionalString("detail"),
+        CaptureEnd.valueOf(getString("reason")), optionalString("detail"), optionalString("id"),
     )
 }
 
