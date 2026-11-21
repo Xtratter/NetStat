@@ -30,6 +30,7 @@ python tools/verify-pcapd-fixture.py .superpowers/pcapd-bin/dist/arm64-v8a/libpc
 | Source / Источник | Known UID / Атрибуция | Drops / Потери | Observation / Наблюдение |
 | --- | --- | --- | --- |
 | Offline fixture | n/a | n/a | TCP 7, UDP 2. File playback exercises decoding only. |
+| Device loopback, normal Termux | TCP 3/3 fully attributed; UDP 4/4 partially attributed | Kernel drops 0, interface drops 0; UDP test messages 8/8 | 29 PCAP packets. For every UDP exchange one packet had the expected UID, the other an unknown UID. Both endpoints shared the Termux UID. |
 | Current network | Pending | Pending | The Termux wrapper in the Codex execution session returned 127 when executing /system/bin/su. No privileged capture started. |
 | Other transports | Pending | Pending | Repeat separately on Wi-Fi, mobile and the VPN tunnel when each is available. |
 
