@@ -2,6 +2,7 @@ package io.github.xtratter.netstat.capture
 
 import android.Manifest
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.os.Build
 import android.provider.Settings
 import android.text.format.DateFormat
@@ -14,8 +15,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -28,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -56,12 +54,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import io.github.xtratter.netstat.NetStatTheme
 import io.github.xtratter.netstat.R
-import java.net.NetworkInterface
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,24 +73,16 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     val supported = remember(context) { PcapdCapture.isSupported(context) }
     val managers = remember(context) { NotificationManagerCompat.from(context) }
     var notifications by remember { mutableStateOf(managers.areNotificationsEnabled()) }
-    var interfaceName by rememberSaveable { mutableStateOf("") }
+    var selectedInterface by rememberSaveable { mutableStateOf<String?>(null) }
+    var manualMode by rememberSaveable { mutableStateOf(false) }
+    var manualName by rememberSaveable { mutableStateOf("") }
+    var showInterfaces by rememberSaveable { mutableStateOf(false) }
     var uid by rememberSaveable { mutableStateOf<Int?>(null) }
     var appLabel by rememberSaveable { mutableStateOf<String?>(null) }
     var showApps by rememberSaveable { mutableStateOf(false) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notifications = managers.areNotificationsEnabled()
     }
-    var interfaces by remember(supported) { mutableStateOf(emptyList<String>()) }
-    LaunchedEffect(supported) {
-        if (supported) {
-            interfaces = withContext(Dispatchers.IO) {
-                runCatching { NetworkInterface.getNetworkInterfaces()?.toList().orEmpty() }
-                    .getOrDefault(emptyList())
-                    .map { it.name }.filter(CaptureConfig::isValidInterface).sorted()
-            }
-        }
-    }
-
     DisposableEffect(activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) notifications = managers.areNotificationsEnabled()
@@ -109,6 +101,20 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
 
     var inspectorId by rememberSaveable { mutableStateOf<String?>(null) }
     var connectionIndex by rememberSaveable { mutableStateOf(-1) }
+    var choices by remember { mutableStateOf<InterfaceChoices?>(null) }
+    LaunchedEffect(activity, supported, state.active, inspectorId) {
+        if (supported && !state.active && inspectorId == null) {
+            val connectivity = context.getSystemService(ConnectivityManager::class.java)
+            activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (isActive) {
+                    choices = withContext(Dispatchers.IO) { discoverInterfaces(connectivity) }
+                    delay(2_000)
+                }
+            }
+        }
+    }
+    val target = choices?.target(selectedInterface)
+    val interfaceName = if (manualMode) manualName.trim().takeIf(CaptureConfig::isValidInterface) else target?.name
     val finished = (state as? CaptureState.Finished)?.report
     val selectedId = inspectorId
     if (selectedId != null && finished?.sessionId == selectedId) {
@@ -147,11 +153,19 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                 } else if (!state.active) {
                     item {
                         CaptureForm(
-                            interfaceName, interfaces, uid, appLabel,
-                            onInterface = { interfaceName = it },
+                            target = target,
+                            missing = selectedInterface?.takeIf { target == null && choices != null },
+                            automatic = selectedInterface == null,
+                            manualMode = manualMode,
+                            manualName = manualName,
+                            canStart = interfaceName != null,
+                            uid = uid,
+                            appLabel = appLabel,
+                            onPickInterface = { showInterfaces = true },
+                            onManualName = { manualName = it.take(15) },
                             onSelect = { showApps = true },
                             onStart = {
-                                CaptureService.start(activity, CaptureConfig(interfaceName.trim(), uid, appLabel))
+                                interfaceName?.let { CaptureService.start(activity, CaptureConfig(it, uid, appLabel)) }
                             },
                         )
                     }
@@ -237,6 +251,22 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
             }
         }
 
+        if (showInterfaces) {
+            InterfacePicker(
+                choices = choices,
+                onSelect = { name ->
+                    selectedInterface = name
+                    manualMode = false
+                    showInterfaces = false
+                },
+                onManual = {
+                    if (!manualMode) manualName = target?.name.orEmpty()
+                    manualMode = true
+                    showInterfaces = false
+                },
+                onDismiss = { showInterfaces = false },
+            )
+        }
         if (showApps) {
             CaptureAppPicker(
                 dismiss = { showApps = false },
@@ -250,39 +280,45 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CaptureForm(
-    interfaceName: String,
-    interfaces: List<String>,
+    target: CaptureInterface?,
+    missing: String?,
+    automatic: Boolean,
+    manualMode: Boolean,
+    manualName: String,
+    canStart: Boolean,
     uid: Int?,
     appLabel: String?,
-    onInterface: (String) -> Unit,
+    onPickInterface: () -> Unit,
+    onManualName: (String) -> Unit,
     onSelect: () -> Unit,
     onStart: () -> Unit,
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = interfaceName,
-                onValueChange = { if (it.length <= 15) onInterface(it) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.capture_interface)) },
-                placeholder = { Text(stringResource(R.string.capture_interface_placeholder)) },
-                singleLine = true,
-                isError = interfaceName.isNotBlank() && !CaptureConfig.isValidInterface(interfaceName.trim()),
-            )
-            if (interfaces.isNotEmpty()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (name in interfaces.take(8)) {
-                        FilterChip(interfaceName == name, onClick = { onInterface(name) }, label = { Text(name) })
-                    }
-                }
+            Text(stringResource(R.string.capture_interface), style = MaterialTheme.typography.labelLarge)
+            OutlinedButton(onClick = onPickInterface, modifier = Modifier.fillMaxWidth()) {
+                Text(if (!manualMode && target != null) target.label() else stringResource(R.string.capture_interface_pick))
+            }
+            if (manualMode) {
+                OutlinedTextField(
+                    value = manualName,
+                    onValueChange = onManualName,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.capture_interface_name)) },
+                    isError = manualName.isNotBlank() && !canStart,
+                    singleLine = true,
+                )
+            } else if (missing != null) {
+                Text(stringResource(R.string.capture_interface_missing, missing), color = MaterialTheme.colorScheme.error)
+            } else if (automatic && target != null) {
+                Text(stringResource(R.string.capture_interface_default), style = MaterialTheme.typography.bodySmall)
             }
             Text(stringResource(R.string.capture_scope), style = MaterialTheme.typography.labelLarge)
             OutlinedButton(onClick = onSelect) { Text(scopeLabel(uid, appLabel)) }
             if (uid != null) Text(stringResource(R.string.capture_filter_note), style = MaterialTheme.typography.bodySmall)
-            Button(onClick = onStart, enabled = CaptureConfig.isValidInterface(interfaceName.trim())) {
+            Button(onClick = onStart, enabled = canStart) {
                 Text(stringResource(R.string.capture_start))
             }
             Text(stringResource(R.string.capture_retention), style = MaterialTheme.typography.bodySmall)

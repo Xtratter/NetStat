@@ -2,7 +2,7 @@
 
 [Русский](README.ru.md)
 
-[Download the Android APK (v0.4.0 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.4.0/NetStat-0.4.0-debug.apk)
+[Download the Android APK (v0.4.1 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.4.1/NetStat-0.4.1-debug.apk)
 
 NetStat shows Android’s Wi-Fi and mobile data history by app. The first build runs on
 Android 10 (API 29) and later. Usage access is available on a standard device.
@@ -26,7 +26,7 @@ returned intervals with zero recorded bytes.
 
 ## Root capture
 
-On an arm64 phone, open **Capture**, select one interface (such as `tun0` for a VPN), choose an app or all UIDs, and start recording. Grant root to NetStat. Stop using the app or notification. Sessions are capped at three minutes or 8 MiB.
+On an arm64 phone, open **Capture**, choose the current Android network or pick an interface from the list, choose an app or all UIDs, and start recording. Grant root to NetStat. Stop using the app or notification. Sessions are capped at three minutes or 8 MiB.
 
 The journal shows IPs, ports, protocol and available owner information. The per-app filter keeps packets confirmed for the selected UID. NetStat keeps the latest recording in private storage. After a process interruption it recovers complete packets and byte counts. The UID index is available for normally completed sessions. [Capture bench instructions](docs/pcapd-bench.md).
 

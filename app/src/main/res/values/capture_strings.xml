@@ -2,7 +2,20 @@
     <string name="capture_title">Capture</string>
     <string name="capture_history">History</string>
     <string name="capture_interface">Network interface</string>
-    <string name="capture_interface_placeholder">For example, tun0</string>
+    <string name="capture_interface_pick">Choose an interface</string>
+    <string name="capture_interface_name">Interface name</string>
+    <string name="capture_interface_missing">%1$s is unavailable. Choose another interface.</string>
+    <string name="capture_interface_default">Current Android network</string>
+    <string name="capture_interface_loading">Checking available interfaces…</string>
+    <string name="capture_interface_empty">Android did not report any available interfaces.</string>
+    <string name="capture_interface_manual">Enter manually</string>
+    <string name="capture_interface_vpn">VPN</string>
+    <string name="capture_interface_wifi">Wi-Fi</string>
+    <string name="capture_interface_mobile">Mobile network</string>
+    <string name="capture_interface_ethernet">Ethernet</string>
+    <string name="capture_interface_tunnel">Tunnel</string>
+    <string name="capture_interface_loopback">Loopback</string>
+    <string name="capture_interface_option" translatable="false">%1$s (%2$s)</string>
     <string name="capture_scope">Traffic to record</string>
     <string name="capture_all">All UIDs</string>
     <string name="capture_choose_app">Choose an app</string>
