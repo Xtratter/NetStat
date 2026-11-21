@@ -2,7 +2,7 @@
 
 [Русский](README.ru.md)
 
-[Download the Android APK (v0.4.1 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.4.1/NetStat-0.4.1-debug.apk)
+[Download the Android APK (v0.5.0 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.5.0/NetStat-0.5.0-debug.apk)
 
 NetStat shows Android’s Wi-Fi and mobile data history by app. The first build runs on
 Android 10 (API 29) and later. Usage access is available on a standard device.
