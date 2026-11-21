@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-[Скачать APK для Android (v0.3.0 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.3.0/NetStat-0.3.0-debug.apk)
+[Скачать APK для Android (v0.4.0 debug)](https://github.com/Xtratter/NetStat/releases/download/v0.4.0/NetStat-0.4.0-debug.apk)
 
 NetStat показывает историю расхода по приложениям в Wi-Fi и мобильной сети.
 Для первой сборки нужен Android 10 (API 29) или новее. Достаточно разрешить доступ
