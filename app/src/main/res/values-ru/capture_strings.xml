@@ -30,14 +30,14 @@
     <string name="capture_status_loading">Читаем последнюю запись…</string>
     <string name="capture_status_stopped">Запись завершена</string>
     <string name="capture_status_size_limit">Достигнут лимит 8 МиБ</string>
-    <string name="capture_status_time_limit">Достигнут лимит 3 минуты</string>
+    <string name="capture_status_time_limit">Достигнут лимит времени</string>
     <string name="capture_status_root_failed">Не удалось начать захват с root</string>
     <string name="capture_status_stream_failed">Соединение с pcapd прервалось</string>
     <string name="capture_status_storage_failed">Не удалось сохранить запись</string>
     <string name="capture_status_interrupted">Запись прервана</string>
     <string name="capture_status_unavailable">Захват недоступен</string>
     <string name="capture_unsupported">Для захвата с root нужен встроенный компонент Android arm64.</string>
-    <string name="capture_retention">NetStat хранит последнюю запись в закрытом каталоге устройства. Лимит сеанса — 3 минуты или 8 МиБ.</string>
+    <string name="capture_retention">NetStat хранит последнюю запись в закрытом каталоге устройства. Запись остановится по лимиту времени или при достижении 8 МиБ.</string>
     <string name="capture_notification_channel">Захват трафика</string>
     <string name="capture_notification_title">Запись трафика NetStat</string>
     <string name="capture_notification_interface">Интерфейс %1$s</string>
@@ -67,4 +67,6 @@
     <string name="capture_vpn_conflict_title">Другой VPN уже включён</string>
     <string name="capture_vpn_conflict">Отключи текущий VPN в настройках Android перед запуском VPN-захвата NetStat.</string>
     <string name="capture_vpn_settings">Настройки VPN</string>
+    <string name="capture_duration">Время записи</string>
+    <string name="capture_duration_option">До %1$d мин</string>
 </resources>

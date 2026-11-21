@@ -1,10 +1,15 @@
 package io.github.xtratter.netstat.capture
 
 internal const val CAPTURE_BYTES_LIMIT = 8L * 1024 * 1024
-internal const val CAPTURE_DURATION_SECONDS = 180
 internal const val CAPTURE_CONNECTION_LIMIT = 300
 
 internal enum class CaptureMode { ROOT, VPN }
+
+internal enum class CaptureDuration(val minutes: Int) {
+    STANDARD(3), EXTENDED(30);
+
+    val seconds get() = minutes * 60
+}
 
 internal data class CaptureConfig(
     val interfaceName: String,
@@ -12,6 +17,7 @@ internal data class CaptureConfig(
     val label: String? = null,
     val mode: CaptureMode = CaptureMode.ROOT,
     val packageName: String? = null,
+    val duration: CaptureDuration = CaptureDuration.STANDARD,
 ) {
     init {
         require(isValidInterface(interfaceName))

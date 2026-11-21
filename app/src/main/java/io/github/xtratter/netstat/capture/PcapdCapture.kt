@@ -135,7 +135,7 @@ internal class PcapdCapture(
 
     private fun launchHelper(binary: File, working: File): Process {
         val args = mutableListOf(
-            "/system/bin/timeout", "-k", "2", (CAPTURE_DURATION_SECONDS + 15).toString(),
+            "/system/bin/timeout", "-k", "2", (config.duration.seconds + 15).toString(),
             binary.absolutePath, "-i", config.interfaceName,
         )
         config.uid?.let { args.addAll(listOf("-u", it.toString())) }
@@ -168,7 +168,7 @@ internal class PcapdCapture(
 
     private fun record(connection: LocalSocket, ledger: CaptureLedger): Nothing {
         val started = SystemClock.elapsedRealtime()
-        val deadline = started + CAPTURE_DURATION_SECONDS * 1000L
+        val deadline = started + config.duration.seconds * 1000L
         val initialInterface = interfaceIndex()
         var nextInterfaceCheck = started + 2_000
         val input = CaptureInput(connection) {

@@ -3,7 +3,7 @@
 The arm64 APK can record IPv4 and IPv6 TCP and UDP through Android VpnService.
 NetStat opens protected direct sockets on the network that was active at
 the start. It uses that network's DNS servers. Losing that network ends
-the recording. The same three-minute and eight-MiB caps apply as in root mode.
+the recording. The same selectable 3- or 30-minute duration and 8 MiB file cap apply as in root mode.
 
 Selecting an app constrains the VPN to the app's UID through Android's
 allowed-application list. Packets with a confirmed different UID are excluded.
@@ -43,8 +43,8 @@ ordinary app, VPN revocation and physical network changes require device testing
 
 Режим **VPN без root** работает на Android arm64 и использует локальную пересылку
 IPv4/IPv6. NetStat открывает защищённые сокеты в сети, активной на момент старта,
-и использует её DNS. При потере этой сети запись завершится. Лимит сеанса —
-три минуты или 8 МиБ. Для запуска нужен системный запрос Android. При обнаружении
+и использует её DNS. При потере этой сети запись завершится. Можно выбрать
+длительность до 3 или 30 минут, лимит файла составляет 8 МиБ. Для запуска нужен системный запрос Android. При обнаружении
 другого VPN приложение предложит открыть настройки.
 
 Если выбрано приложение, Android направляет в туннель его UID. Пакеты с

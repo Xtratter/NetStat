@@ -31,14 +31,14 @@
     <string name="capture_status_loading">Reading the last recording…</string>
     <string name="capture_status_stopped">Recording finished</string>
     <string name="capture_status_size_limit">Stopped at the 8 MiB limit</string>
-    <string name="capture_status_time_limit">Stopped at the 3-minute limit</string>
+    <string name="capture_status_time_limit">Duration limit reached</string>
     <string name="capture_status_root_failed">Could not start root capture</string>
     <string name="capture_status_stream_failed">The capture connection ended unexpectedly</string>
     <string name="capture_status_storage_failed">Could not save the recording</string>
     <string name="capture_status_interrupted">Recording interrupted</string>
     <string name="capture_status_unavailable">Capture unavailable</string>
     <string name="capture_unsupported">Root capture requires the included Android arm64 helper.</string>
-    <string name="capture_retention">NetStat keeps the latest recording privately on this device. Each session is limited to 3 minutes or 8 MiB.</string>
+    <string name="capture_retention">NetStat keeps the latest recording privately on this device. Recording stops at the selected duration or 8 MiB.</string>
     <string name="capture_notification_channel">Traffic capture</string>
     <string name="capture_notification_title">NetStat traffic capture</string>
     <string name="capture_notification_interface">Interface %1$s</string>
@@ -68,4 +68,6 @@
     <string name="capture_vpn_conflict_title">Another VPN is active</string>
     <string name="capture_vpn_conflict">Disconnect the active VPN in Android settings before starting NetStat VPN capture.</string>
     <string name="capture_vpn_settings">VPN settings</string>
+    <string name="capture_duration">Capture duration</string>
+    <string name="capture_duration_option">Up to %1$d min</string>
 </resources>

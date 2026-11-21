@@ -147,7 +147,7 @@ internal class VpnCapture(
 
         override fun shouldRun(): Boolean {
             val now = SystemClock.elapsedRealtime()
-            if (now - start >= CAPTURE_DURATION_SECONDS * 1000L) stop(CaptureEnd.TIME_LIMIT)
+            if (now - start >= config.duration.seconds * 1000L) stop(CaptureEnd.TIME_LIMIT)
             if (stopReason.get() == null && now >= nextNetworkCheck) {
                 if (connectivity?.getNetworkCapabilities(network) == null) {
                     fail(CaptureEnd.INTERRUPTED, null)

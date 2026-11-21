@@ -90,8 +90,9 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
     var uid by rememberSaveable { mutableStateOf<Int?>(null) }
     var appLabel by rememberSaveable { mutableStateOf<String?>(null) }
     var appPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    var duration by rememberSaveable { mutableStateOf(CaptureDuration.STANDARD) }
     val vpnConfig = if (uid == null || appPackage != null) {
-        CaptureConfig("vpn", uid, appLabel, CaptureMode.VPN, appPackage)
+        CaptureConfig("vpn", uid, appLabel, CaptureMode.VPN, appPackage, duration)
     } else null
     val vpnPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val shouldStart = consentPending && result.resultCode == Activity.RESULT_OK
@@ -199,12 +200,16 @@ internal fun CaptureScreen(activity: ComponentActivity, onHistory: () -> Unit) {
                             canStart = if (useVpn) vpnConfig != null && !consentPending else interfaceName != null,
                             uid = uid,
                             appLabel = appLabel,
+                            duration = duration,
+                            onDuration = { duration = it },
                             onPickInterface = { showInterfaces = true },
                             onManualName = { manualName = it.take(15) },
                             onSelect = { showApps = true },
                             onStart = {
                                 if (!useVpn) {
-                                    interfaceName?.let { CaptureService.start(activity, CaptureConfig(it, uid, appLabel)) }
+                                    interfaceName?.let {
+                                        CaptureService.start(activity, CaptureConfig(it, uid, appLabel, duration = duration))
+                                    }
                                 } else if (vpnConfig != null) {
                                     if (hasActiveVpn(context.getSystemService(ConnectivityManager::class.java))) {
                                         conflict = true
@@ -366,6 +371,8 @@ private fun CaptureForm(
     canStart: Boolean,
     uid: Int?,
     appLabel: String?,
+    duration: CaptureDuration,
+    onDuration: (CaptureDuration) -> Unit,
     onPickInterface: () -> Unit,
     onManualName: (String) -> Unit,
     onSelect: () -> Unit,
@@ -398,6 +405,16 @@ private fun CaptureForm(
             Text(stringResource(R.string.capture_scope), style = MaterialTheme.typography.labelLarge)
             OutlinedButton(onClick = onSelect) { Text(scopeLabel(uid, appLabel)) }
             if (uid != null) Text(stringResource(if (useVpn) R.string.capture_vpn_filter else R.string.capture_filter_note), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.capture_duration), style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (option in CaptureDuration.entries) {
+                    FilterChip(
+                        selected = duration == option,
+                        onClick = { onDuration(option) },
+                        label = { Text(stringResource(R.string.capture_duration_option, option.minutes)) },
+                    )
+                }
+            }
             Button(onClick = onStart, enabled = canStart) {
                 Text(stringResource(if (useVpn) R.string.capture_vpn_start else R.string.capture_start))
             }

@@ -58,6 +58,7 @@ class CaptureService : VpnService() {
                 intent.getStringExtra(EXTRA_LABEL),
                 CaptureMode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: CaptureMode.ROOT.name),
                 intent.getStringExtra(EXTRA_PACKAGE),
+                CaptureDuration.valueOf(intent.getStringExtra(EXTRA_DURATION) ?: CaptureDuration.STANDARD.name),
             )
         }.getOrNull()
         if (config == null) {
@@ -168,6 +169,7 @@ class CaptureService : VpnService() {
         private const val EXTRA_INTERFACE = "interface"
         private const val EXTRA_UID = "uid"
         private const val EXTRA_MODE = "mode"
+        private const val EXTRA_DURATION = "duration"
         private const val EXTRA_PACKAGE = "package"
         private const val EXTRA_LABEL = "label"
         private const val EXTRA_NOTIFICATION_TOKEN = "notificationToken"
@@ -182,6 +184,7 @@ class CaptureService : VpnService() {
                 .putExtra(EXTRA_UID, config.uid ?: -1)
                 .putExtra(EXTRA_LABEL, config.label)
                 .putExtra(EXTRA_MODE, config.mode.name)
+                .putExtra(EXTRA_DURATION, config.duration.name)
                 .putExtra(EXTRA_PACKAGE, config.packageName)
             try {
                 ContextCompat.startForegroundService(context, intent)
