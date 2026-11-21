@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.NetStat" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#00696B</item>
+        <item name="android:windowBackground">#F5F9F8</item>
+    </style>
+</resources>

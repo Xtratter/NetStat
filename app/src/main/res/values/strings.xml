@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name" translatable="false">NetStat</string>
+    <string name="traffic_title">Data usage</string>
+    <string name="period_label">Period</string>
+    <string name="period_today">Today</string>
+    <string name="period_last_night">Last night</string>
+    <string name="period_custom">Custom</string>
+    <string name="network_label">Network</string>
+    <string name="network_wifi">Wi-Fi</string>
+    <string name="network_mobile">Mobile</string>
+    <string name="refresh">Refresh</string>
+    <string name="loading">Reading Android history…</string>
+    <string name="access_title">Allow usage access</string>
+    <string name="access_description">Enable NetStat in Android’s usage access settings to see data usage by app.</string>
+    <string name="access_settings">Open settings</string>
+    <string name="access_settings_missing">Usage access settings are unavailable on this device.</string>
+    <string name="error_title">History unavailable</string>
+    <string name="error_description">Android could not return network statistics. Try refreshing.</string>
+    <string name="empty_title">No history for this period</string>
+    <string name="empty_description">Android returned no complete intervals. Recent data may appear later. Try a longer period.</string>
+    <string name="future_period_title">Period ends in the future</string>
+    <string name="future_period_description">Choose a period that has already ended.</string>
+    <string name="total_usage">Recorded usage</string>
+    <string name="received">Received</string>
+    <string name="sent">Sent</string>
+    <string name="usage_exact_bytes">%1$s bytes</string>
+    <string name="coverage_title">Recorded coverage</string>
+    <string name="coverage_full">Covers the selected period</string>
+    <string name="coverage_partial">Covers part of the selected period</string>
+    <string name="coverage_gaps">Coverage has gaps</string>
+    <string name="interval_range">%1$s – %2$s</string>
+    <string name="precision_single">Android interval size %1$s</string>
+    <string name="precision_range">Android interval sizes %1$s – %2$s</string>
+    <string name="history_note">Totals include complete Android intervals inside the selected period. Recent data can arrive later.</string>
+    <string name="app_usage_title">Usage by app</string>
+    <string name="app_uid">UID %1$d</string>
+    <string name="removed_apps">Removed apps</string>
+    <string name="tethering">Tethering</string>
+    <string name="android_system">Android system</string>
+    <string name="custom_title">Custom period</string>
+    <string name="custom_start">Start</string>
+    <string name="custom_end">End</string>
+    <string name="custom_earlier">First occurrence (%1$s)</string>
+    <string name="custom_later">Second occurrence (%1$s)</string>
+    <string name="custom_apply">Apply</string>
+    <string name="custom_cancel">Cancel</string>
+    <string name="custom_invalid_order">The end must be after the start.</string>
+    <string name="custom_invalid_future">The end must be at or before the current time.</string>
+    <string name="custom_invalid_local_time">This local time was skipped by a clock change. Choose a different time.</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hr</item>
+        <item quantity="other">%d hr</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="duration_seconds">
+        <item quantity="one">%d sec</item>
+        <item quantity="other">%d sec</item>
+    </plurals>
+    <string name="shared_uid">Shared UID %1$d</string>
+    <string name="coverage_all_apps">Coverage across apps</string>
+    <string name="show_intervals">Show intervals</string>
+    <string name="hide_intervals">Hide intervals</string>
+</resources>
