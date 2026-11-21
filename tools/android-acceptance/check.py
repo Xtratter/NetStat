@@ -41,11 +41,14 @@ def activity(name, *extra, restart=False):
 
 
 def netstat(capture=False, restart=False):
-    activity(f"{NETSTAT}/.MainActivity", "--ez", OPEN_CAPTURE, str(capture).lower(), restart=restart)
+    activity(f"{NETSTAT}/.MainActivity", "--activity-single-top",
+             "--ez", OPEN_CAPTURE, str(capture).lower(), restart=restart)
 
 
 def screen():
-    adb("shell", "uiautomator", "dump", UI_DUMP)
+    result = adb("shell", "uiautomator", "dump", UI_DUMP)
+    if UI_DUMP.encode() not in result:
+        raise RuntimeError(f"UI hierarchy unavailable: {result.decode(errors='replace')}")
     return ET.fromstring(adb("exec-out", "cat", UI_DUMP))
 
 
@@ -59,7 +62,8 @@ def find_label(text, present=True):
             last_error = error
             time.sleep(0.25)
             continue
-        node = next((item for item in tree.iter("node") if item.get("text", "").casefold() == text.casefold()), None)
+        node = next((item for item in tree.iter("node")
+                     if text.casefold() in item.get("text", "").casefold().splitlines()), None)
         if present and node is not None:
             return node
         if not present and node is None:
@@ -146,10 +150,9 @@ def start_vpn():
 
 def check_vpn():
     netstat(capture=True, restart=True)
-    tap("Choose an app")
+    tap("All UIDs")
     tap("Search apps")
     adb("shell", "input", "text", "NetStat%sProbe")
-    adb("shell", "input", "keyevent", "KEYCODE_BACK")
     tap("NetStat Probe")
 
     tap("Start VPN capture")
