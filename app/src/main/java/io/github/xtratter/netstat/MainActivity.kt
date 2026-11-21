@@ -16,6 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import io.github.xtratter.netstat.capture.CaptureScreen
+import io.github.xtratter.netstat.capture.CaptureService
 import io.github.xtratter.netstat.usage.AndroidUsageHistory
 import io.github.xtratter.netstat.usage.UsageNetwork
 import io.github.xtratter.netstat.usage.UsagePeriod
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
     private val history by lazy { AndroidUsageHistory(applicationContext) }
     private val appOps by lazy { getSystemService(AppOpsManager::class.java) }
 
+    private var captureOpen by mutableStateOf(false)
     private var period by mutableStateOf<UsagePeriod>(UsagePeriod.Today)
     private var network by mutableStateOf(UsageNetwork.WIFI)
     private var request by mutableStateOf(currentRequest())
@@ -60,26 +63,39 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         savedInstanceState?.let(::restoreSelection)
         request = currentRequest()
+        captureOpen = savedInstanceState?.getBoolean("captureOpen")
+            ?: intent.getBooleanExtra(CaptureService.EXTRA_OPEN_CAPTURE, false)
 
         enableEdgeToEdge()
         setContent {
-            UsageScreen(
-                activity = this,
-                period = period,
-                request = request,
-                result = result,
-                onPeriod = {
-                    period = it
-                    refresh()
-                },
-                onNetwork = {
-                    network = it
-                    refresh()
-                },
-                onRefresh = ::refresh,
-                onOpenSettings = ::openUsageSettings,
-            )
+            if (captureOpen) {
+                CaptureScreen(this, onHistory = { captureOpen = false })
+            } else {
+                UsageScreen(
+                    activity = this,
+                    period = period,
+                    request = request,
+                    result = result,
+                    onPeriod = {
+                        period = it
+                        refresh()
+                    },
+                    onNetwork = {
+                        network = it
+                        refresh()
+                    },
+                    onRefresh = ::refresh,
+                    onOpenSettings = ::openUsageSettings,
+                    onCapture = { captureOpen = true },
+                )
+            }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(CaptureService.EXTRA_OPEN_CAPTURE, false)) captureOpen = true
     }
 
     override fun onStart() {
@@ -120,6 +136,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putBoolean("captureOpen", captureOpen)
         outState.putString("network", network.name)
         when (val selected = period) {
             UsagePeriod.Today -> outState.putString("period", "today")

@@ -32,3 +32,13 @@ prebuilt. The arm64-v8a ELF identifies NDK r25c (9519653) as its build toolchain
 
 [AndroidX Graphics Path 1.0.1 release notes](https://developer.android.com/jetpack/androidx/releases/graphics#graphics-path) ·
 [Google Maven metadata](https://dl.google.com/dl/android/maven2/androidx/graphics/graphics-path/1.0.1/graphics-path-1.0.1.pom)
+
+`app/src/test/resources/pcapd-sample.events` is the Unix socket stream emitted
+by the pinned arm64 helper (pcapd-bin 6b545346) when replaying this synthetic
+PCAP. The two padding bytes in each native header have been cleared.
+RecordedPcapdTest reads the stream and compares the SHA-256 of the restored
+PCAP with the value above. It runs without root or Android networking.
+
+JVM-тест читает события arm64-версии pcapd с синтетической записи. Два байта
+выравнивания в заголовке каждого события обнулены. Контрольная сумма
+восстановленного PCAP должна совпасть с опубликованной выше.

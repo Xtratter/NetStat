@@ -4,7 +4,6 @@ import android.app.usage.NetworkStats
 import android.os.Process
 import android.text.format.Formatter
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,8 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -48,31 +44,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.xtratter.netstat.NetStatTheme
 import io.github.xtratter.netstat.R
 import java.text.NumberFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-
-private val DayColors = lightColorScheme(
-    primary = Color(0xFF00696B),
-    primaryContainer = Color(0xFFC9EFEB),
-    onPrimaryContainer = Color(0xFF0B3537),
-    background = Color(0xFFF5F9F8),
-    surface = Color(0xFFF8FCFB),
-    surfaceVariant = Color(0xFFDAE7E5),
-    onSurfaceVariant = Color(0xFF3F4949),
-)
-
-private val NightColors = darkColorScheme(
-    primary = Color(0xFF85DAD8),
-    primaryContainer = Color(0xFF194A4B),
-    onPrimaryContainer = Color(0xFFC3F2EE),
-    background = Color(0xFF101918),
-    surface = Color(0xFF151E1D),
-    surfaceVariant = Color(0xFF394947),
-    onSurfaceVariant = Color(0xFFBECAC8),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,10 +62,11 @@ internal fun UsageScreen(
     onNetwork: (UsageNetwork) -> Unit,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCapture: () -> Unit,
 ) {
     var customOpen by rememberSaveable { mutableStateOf(false) }
 
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) NightColors else DayColors) {
+    NetStatTheme {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets.safeDrawing,
@@ -103,6 +81,9 @@ internal fun UsageScreen(
                     actions = {
                         TextButton(onClick = onRefresh, enabled = result != UsageResult.Loading) {
                             Text(stringResource(R.string.refresh))
+                        }
+                        TextButton(onClick = onCapture) {
+                            Text(stringResource(R.string.capture_title))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
