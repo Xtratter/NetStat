@@ -79,6 +79,12 @@ internal fun PacketInspector(
         }
     }
     val packetScroll = rememberLazyListState()
+    var showHttp by rememberSaveable(session) { mutableStateOf(false) }
+    val loaded = list
+    if (showHttp && loaded != null) {
+        HttpInspector(loaded.file, connection, onBack = { showHttp = false })
+        return
+    }
     val back = { if (!busy) { if (selected >= 0) selected = -1 else onBack() } }
     BackHandler(onBack = back)
     NetStatTheme {
@@ -89,6 +95,11 @@ internal fun PacketInspector(
             Column(Modifier.fillMaxSize().padding(insets).padding(horizontal = 12.dp)) {
                 val data = list
                 if (selected < 0) {
+                    if (connection == null || connection.protocol == 6) {
+                        TextButton(enabled = data != null && !busy, onClick = { showHttp = true }) {
+                            Text(stringResource(R.string.http_dialogues))
+                        }
+                    }
                     Row {
                         TextButton(enabled = data != null && !busy, onClick = { export.launch("NetStat-$session.pcapng") }) {
                             Text(stringResource(R.string.packet_export))

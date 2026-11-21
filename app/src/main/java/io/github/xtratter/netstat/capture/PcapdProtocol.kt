@@ -72,11 +72,7 @@ internal class RawPcapWriter(private val output: OutputStream, private val limit
 }
 
 internal fun connectionOf(packet: ByteArray): ConnectionKey? {
-    val view = when (packet.firstOrNull()?.toInt()?.and(0xF0)) {
-        0x40 -> ipv4(packet)
-        0x60 -> ipv6(packet)
-        else -> null
-    } ?: return null
+    val view = ipView(packet) ?: return null
 
     val ports = when {
         view.fragmentOffset -> null
@@ -99,6 +95,36 @@ internal fun connectionOf(packet: ByteArray): ConnectionKey? {
     val destination = Endpoint(view.destination, ports?.second)
     return if (source <= destination) ConnectionKey(view.protocol, source, destination)
     else ConnectionKey(view.protocol, destination, source)
+}
+
+internal data class CapturedTcpSegment(
+    val source: Endpoint,
+    val destination: Endpoint,
+    val sequence: Int,
+    val flags: Int,
+    val payload: ByteArray,
+)
+
+internal fun tcpSegment(packet: ByteArray): CapturedTcpSegment? {
+    val ip = ipView(packet) ?: return null
+    if (ip.protocol != 6 || ip.fragmentOffset || ip.moreFragments || ip.offset + 20 > ip.end) return null
+    val offset = ip.offset
+    val dataStart = offset + (packet.unsigned(offset + 12) ushr 4) * 4
+    if (dataStart < offset + 20 || dataStart > ip.end) return null
+    val flags = packet.unsigned(offset + 13)
+    if (dataStart == ip.end && flags and 7 == 0) return null
+    val sequence = ByteBuffer.wrap(packet, offset + 4, 4).int
+    return CapturedTcpSegment(
+        Endpoint(ip.source, packet.unsignedShort(offset)),
+        Endpoint(ip.destination, packet.unsignedShort(offset + 2)),
+        sequence, flags, packet.copyOfRange(dataStart, ip.end),
+    )
+}
+
+private fun ipView(packet: ByteArray) = when (packet.firstOrNull()?.toInt()?.and(0xF0)) {
+    0x40 -> ipv4(packet)
+    0x60 -> ipv6(packet)
+    else -> null
 }
 
 private data class IpView(

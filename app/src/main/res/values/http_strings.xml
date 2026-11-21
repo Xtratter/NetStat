@@ -1,0 +1,15 @@
+<resources>
+    <string name="http_dialogues">HTTP conversations</string>
+    <string name="http_search">Search URLs, headers and text</string>
+    <string name="http_search_scope">Search covers cleartext HTTP URLs, headers and decoded text previews.</string>
+    <string name="http_session_limit">Reached the analysis limit for this recording.</string>
+    <string name="http_empty">No HTTP/1.x messages found.</string>
+    <string name="http_matches">%1$d of %2$d conversations</string>
+    <string name="http_partial">Incomplete</string>
+    <string name="http_response_only">Request unavailable</string>
+    <string name="http_request">Request</string>
+    <string name="http_response">Response</string>
+    <string name="http_body">Body · %1$d captured bytes</string>
+    <string name="http_preview_limit">Text or hex preview reached its size limit.</string>
+    <string name="http_encoding_unavailable">Body encoding could not be decoded.</string>
+</resources>

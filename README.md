@@ -34,6 +34,10 @@ The journal shows IPs, ports, protocol and available owner information. The per-
 
 Stop the recording and open **Packets** for the entire session, or tap a connection in the completed journal for its packets. Select a packet and a protocol field to highlight the corresponding hex bytes. **Export full PCAPNG** writes the entire session through the system file picker, including other connections in the session. Completed recordings from 0.2.0 are readable after updating. Deleting the session removes its packets and journal after confirmation.
 
+## HTTP conversations
+
+Open **Packets → HTTP conversations** for a completed session or a TCP connection. NetStat reconstructs cleartext HTTP/1.x requests and responses from captured TCP segments and marks incomplete exchanges. Search includes URLs, headers and decoded text in both directions. Chunked bodies and gzip are decoded, with up to 256 KiB of preview per body and 4 MiB of retained HTTP headers and bodies per analysis. Binary previews show hex.
+
 ## Build and check
 
 Use JDK 17, Android SDK 35 and Build Tools 35.0.0. The wrapper pins Gradle 8.10.2,

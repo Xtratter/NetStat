@@ -1,0 +1,15 @@
+<resources>
+    <string name="http_dialogues">HTTP-диалоги</string>
+    <string name="http_search">Поиск по URL, заголовкам и тексту</string>
+    <string name="http_search_scope">Поиск по открытому HTTP включает URL, заголовки и декодированный текст в пределах предпросмотра.</string>
+    <string name="http_session_limit">Достигнут предел анализа этой записи.</string>
+    <string name="http_empty">Сообщения HTTP/1.x не найдены.</string>
+    <string name="http_matches">Найдено %1$d из %2$d диалогов</string>
+    <string name="http_partial">Неполный</string>
+    <string name="http_response_only">Запрос отсутствует в записи</string>
+    <string name="http_request">Запрос</string>
+    <string name="http_response">Ответ</string>
+    <string name="http_body">Тело · захвачено %1$d байт</string>
+    <string name="http_preview_limit">Достигнут предел предпросмотра текста или hex.</string>
+    <string name="http_encoding_unavailable">Не удалось декодировать тело.</string>
+</resources>
