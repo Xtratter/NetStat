@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.xtratter.netstat.probe">
+    <uses-sdk android:minSdkVersion="35" android:targetSdkVersion="35" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="NetStat Probe" android:usesCleartextTraffic="true">
+        <activity android:name=".ProbeActivity" android:exported="true" />
+        <service android:name=".ProbeVpn" android:exported="true"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
